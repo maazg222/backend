@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
+const fetch = require('node-fetch');
 const { Server } = require('socket.io');
 
 dotenv.config();
