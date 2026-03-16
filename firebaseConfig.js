@@ -41,6 +41,7 @@ if (process.env.FIREBASE_PROJECT_ID) {
 if (serviceAccount) {
   try {
     if (!admin.apps.length) {
+      console.log('Attempting to initialize Firebase Admin...');
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
       });
@@ -49,7 +50,8 @@ if (serviceAccount) {
       console.log('Firebase Admin already initialized.');
     }
   } catch (initErr) {
-    console.error('Firebase initialization failed:', initErr.message);
+    console.error('CRITICAL: Firebase initialization failed:', initErr.message);
+    console.error('Service account keys present:', Object.keys(serviceAccount).filter(k => !!serviceAccount[k]));
   }
 } else {
   // Fallback or placeholder for initial setup
