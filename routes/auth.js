@@ -12,13 +12,14 @@ const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 // Use the environment variable, but allow it to be dynamic based on the request host if needed
 // However, Discord requires EXACT matches in the portal.
 const getRedirectUri = (req) => {
-  // Use the environment variable if available, otherwise use the current host (the backend's actual URL)
+  // Use the environment variable if available, otherwise use the backend's own URL
   if (process.env.DISCORD_REDIRECT_URI) return process.env.DISCORD_REDIRECT_URI;
   
   const host = req.get('host');
-  const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+  const protocol = req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
   
-  // This will dynamically point to the actual backend URL on Vercel
+  // CRITICAL: This MUST be the backend's own URL (e.g., your-backend.vercel.app)
+  // NOT the frontend URL (www.fiahost.qzz.io).
   return `${protocol}://${host}/api/auth/discord/callback`;
 };
 
