@@ -12,8 +12,14 @@ const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 // Use the environment variable, but allow it to be dynamic based on the request host if needed
 // However, Discord requires EXACT matches in the portal.
 const getRedirectUri = (req) => {
-  // Use the environment variable if available, otherwise fallback to localhost
-  return process.env.DISCORD_REDIRECT_URI || 'http://localhost:5000/api/auth/discord/callback';
+  // Use the environment variable if available, otherwise fallback to the production domain
+  if (process.env.DISCORD_REDIRECT_URI) return process.env.DISCORD_REDIRECT_URI;
+  
+  const host = req.get('host');
+  if (host && (host.includes('localhost') || host.includes('127.0.0.1'))) {
+    return 'http://localhost:5000/api/auth/discord/callback';
+  }
+  return 'https://www.fiahost.qzz.io/api/auth/discord/callback';
 };
 
 router.get('/user/:id', async (req, res) => {
@@ -214,7 +220,14 @@ function redirectUser(req, res, user) {
     try {
         const userJson = JSON.stringify(user);
         const hash = `#user_data=${encodeURIComponent(userJson)}`;
-        const redirectPath = `http://localhost:5000/dashboard.html${hash}`;
+        
+        // Use the host from the request to build the redirect path
+        const host = req.get('host');
+        const isLocal = host && (host.includes('localhost') || host.includes('127.0.0.1'));
+        const protocol = isLocal ? 'http' : 'https';
+        const baseDomain = isLocal ? `http://${host}` : 'https://www.fiahost.qzz.io';
+        
+        const redirectPath = `${baseDomain}/dashboard.html${hash}`;
         
         console.log('Redirecting user to:', redirectPath);
 
