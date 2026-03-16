@@ -20,6 +20,12 @@ router.get('/user/:id', async (req, res) => {
   try {
     const { id } = req.params;
     if (!id) return res.status(400).json({ message: 'User ID required' });
+    
+    if (!db) {
+      console.error('Database connection is not initialized');
+      return res.status(500).json({ message: 'Database connection failed. Please check backend logs.' });
+    }
+
     const docRef = db.collection('users').doc(id);
     const doc = await docRef.get();
     if (!doc.exists) return res.status(404).json({ message: 'User not found' });
@@ -37,7 +43,8 @@ router.get('/user/:id', async (req, res) => {
     };
     res.json(user);
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch user' });
+    console.error(`Error fetching user ${req.params.id}:`, err);
+    res.status(500).json({ message: 'Failed to fetch user', error: err.message });
   }
 });
 

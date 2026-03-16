@@ -54,6 +54,10 @@ if (serviceAccount) {
   } catch (initErr) {
     console.error('CRITICAL: Firebase initialization failed:', initErr.message);
     console.error('Service account keys present:', Object.keys(serviceAccount).filter(k => !!serviceAccount[k]));
+    if (serviceAccount.private_key) {
+      console.log('Private key length:', serviceAccount.private_key.length);
+      console.log('Private key start:', serviceAccount.private_key.substring(0, 30));
+    }
   }
 } else {
   // Fallback or placeholder for initial setup
