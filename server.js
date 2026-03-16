@@ -75,7 +75,7 @@ let lastBotStats = {
 io.on('connection', (socket) => {
   console.log('User connected to socket');
   onlineUsers.add(socket.id);
-  io.emit('user_count_update', onlineUsers.size);
+  io.emit('user_count_update', io.engine.clientsCount);
 
   // Send current bot stats to newly connected user
   socket.emit('bot_status_update', lastBotStats);
@@ -412,7 +412,7 @@ io.on('connection', (socket) => {
       lastBotStats.online = false;
       io.emit('bot_status_update', lastBotStats);
     }
-    io.emit('user_count_update', onlineUsers.size);
+    io.emit('user_count_update', io.engine.clientsCount);
   });
 });
 
@@ -455,6 +455,57 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'Server is working!' });
 });
 app.set('socketio', io); // Share io with routes
+
+// --- CHAT API ENDPOINTS ---
+app.get('/api/chat/messages', async (req, res) => {
+  try {
+    if (!db) return res.json([]);
+    const snapshot = await db.collection('chat_messages')
+      .orderBy('timestamp', 'asc')
+      .limitToLast(50)
+      .get();
+    const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(messages);
+  } catch (error) {
+    console.error('Error fetching chat messages:', error);
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
+
+app.post('/api/chat/send', async (req, res) => {
+  try {
+    const messageData = req.body;
+    if (!messageData || !messageData.userId) {
+      return res.status(400).json({ error: 'Missing message data' });
+    }
+
+    // Optional: Check if user is banned (similar to existing socket logic)
+    if (db) {
+      const userDoc = await db.collection('users').doc(messageData.userId).get();
+      if (userDoc.exists && userDoc.data().banned) {
+        return res.status(403).json({ error: 'You are banned' });
+      }
+    }
+
+    const newMessage = {
+      ...messageData,
+      timestamp: new Date().toISOString()
+    };
+
+    if (db) {
+      await db.collection('chat_messages').add(newMessage);
+    }
+
+    // Broadcast to all connected users
+    io.emit('receive_message', newMessage);
+    res.status(200).json({ success: true, message: newMessage });
+  } catch (error) {
+    console.error('Error sending message:', error);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+// --------------------------
+
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/bot/guilds', require('./routes/config'));
 
