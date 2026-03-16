@@ -12,14 +12,14 @@ const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 // Use the environment variable, but allow it to be dynamic based on the request host if needed
 // However, Discord requires EXACT matches in the portal.
 const getRedirectUri = (req) => {
-  // Use the environment variable if available, otherwise fallback to the production domain
+  // Use the environment variable if available, otherwise use the current host (the backend's actual URL)
   if (process.env.DISCORD_REDIRECT_URI) return process.env.DISCORD_REDIRECT_URI;
   
   const host = req.get('host');
-  if (host && (host.includes('localhost') || host.includes('127.0.0.1'))) {
-    return 'http://localhost:5000/api/auth/discord/callback';
-  }
-  return 'https://www.fiahost.qzz.io/api/auth/discord/callback';
+  const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+  
+  // This will dynamically point to the actual backend URL on Vercel
+  return `${protocol}://${host}/api/auth/discord/callback`;
 };
 
 router.get('/user/:id', async (req, res) => {
@@ -221,13 +221,15 @@ function redirectUser(req, res, user) {
         const userJson = JSON.stringify(user);
         const hash = `#user_data=${encodeURIComponent(userJson)}`;
         
-        // Use the host from the request to build the redirect path
+        // Use the host from the request to build the redirect path back to the frontend
         const host = req.get('host');
         const isLocal = host && (host.includes('localhost') || host.includes('127.0.0.1'));
-        const protocol = isLocal ? 'http' : 'https';
+        
+        // Always redirect back to the home page after successful login
         const baseDomain = isLocal ? `http://${host}` : 'https://www.fiahost.qzz.io';
         
-        const redirectPath = `${baseDomain}/dashboard.html${hash}`;
+        // Redirect to home page where the frontend logic handles hash and cleans the URL
+        const redirectPath = `${baseDomain}/home${hash}`;
         
         console.log('Redirecting user to:', redirectPath);
 
