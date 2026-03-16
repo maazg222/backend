@@ -56,8 +56,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// Socket.io Real-time Chat
-const { db } = require('./firebaseConfig');
+const { db, admin } = require('./firebaseConfig');
+// Store initialization error if any
+if (!db) {
+  app.set('firebaseInitError', 'Firebase database not initialized. Check logs.');
+}
 
 let onlineUsers = new Set();
 let authenticatedBots = new Set();

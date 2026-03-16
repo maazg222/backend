@@ -5,6 +5,44 @@ const path = require('path');
 
 dotenv.config();
 
+/**
+ * Aggressively fixes mangled Firebase private keys (e.g. from Vercel)
+ * @param {string} key 
+ */
+function fixPrivateKey(key) {
+  if (!key) return key;
+  
+  // 1. Remove quotes if they exist
+  let fixed = key.replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1');
+  
+  // 2. Replace literal \n with actual newlines
+  fixed = fixed.replace(/\\n/g, '\n');
+  
+  // 3. Remove all characters that are NOT part of a standard PEM (A-Z, a-z, 0-9, +, /, =, -, newline)
+  // This cleans up weird backslashes like \pe93UD or other mangling
+  fixed = fixed.replace(/[^A-Za-z0-9+/=\-\n ]/g, '');
+
+  // 4. Extract the base64 part and re-format properly
+  const match = fixed.match(/-----BEGIN PRIVATE KEY-----([\s\S]*)-----END PRIVATE KEY-----/);
+  if (match) {
+    const body = match[1].replace(/\s/g, ''); // remove all whitespace from body
+    // Reconstruct with 64-char lines as per standard PEM
+    const lines = body.match(/.{1,64}/g);
+    if (lines) {
+      fixed = `-----BEGIN PRIVATE KEY-----\n${lines.join('\n')}\n-----END PRIVATE KEY-----\n`;
+    }
+  } else if (!fixed.includes('-----BEGIN PRIVATE KEY-----')) {
+    // If headers are missing, assume the whole string is the body (not recommended but a last resort)
+    const body = fixed.replace(/\s/g, '');
+    const lines = body.match(/.{1,64}/g);
+    if (lines) {
+      fixed = `-----BEGIN PRIVATE KEY-----\n${lines.join('\n')}\n-----END PRIVATE KEY-----\n`;
+    }
+  }
+  
+  return fixed;
+}
+
 let serviceAccount;
 
 // Check if we have Firebase config in environment variables
@@ -13,9 +51,7 @@ if (process.env.FIREBASE_PROJECT_ID) {
     type: "service_account",
     project_id: process.env.FIREBASE_PROJECT_ID,
     private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-    private_key: process.env.FIREBASE_PRIVATE_KEY 
-      ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/\\n/g, '\n').replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1').trim() 
-      : undefined,
+    private_key: fixPrivateKey(process.env.FIREBASE_PRIVATE_KEY),
     client_email: process.env.FIREBASE_CLIENT_EMAIL,
     client_id: process.env.FIREBASE_CLIENT_ID,
     auth_uri: process.env.FIREBASE_AUTH_URI,

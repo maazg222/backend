@@ -23,7 +23,8 @@ router.get('/user/:id', async (req, res) => {
     
     if (!db) {
       console.error('Database connection is not initialized');
-      return res.status(500).json({ message: 'Database connection failed. Please check backend logs.' });
+      const firebaseError = app.get('firebaseInitError') || 'Unknown Firebase initialization error';
+      return res.status(500).json({ message: `Database connection failed. Error: ${firebaseError}` });
     }
 
     const docRef = db.collection('users').doc(id);
