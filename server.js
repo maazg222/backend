@@ -10,6 +10,11 @@ const { Server } = require('socket.io');
 dotenv.config();
 
 const app = express();
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString() });
+});
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
