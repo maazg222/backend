@@ -14,7 +14,7 @@ if (process.env.FIREBASE_PROJECT_ID) {
     project_id: process.env.FIREBASE_PROJECT_ID,
     private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
     private_key: process.env.FIREBASE_PRIVATE_KEY 
-      ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/^"(.*)"$/, '$1').trim() 
+      ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/\\n/g, '\n').replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1').trim() 
       : undefined,
     client_email: process.env.FIREBASE_CLIENT_EMAIL,
     client_id: process.env.FIREBASE_CLIENT_ID,
@@ -55,8 +55,11 @@ if (serviceAccount) {
     console.error('CRITICAL: Firebase initialization failed:', initErr.message);
     console.error('Service account keys present:', Object.keys(serviceAccount).filter(k => !!serviceAccount[k]));
     if (serviceAccount.private_key) {
-      console.log('Private key length:', serviceAccount.private_key.length);
-      console.log('Private key start:', serviceAccount.private_key.substring(0, 30));
+      const actualKey = serviceAccount.private_key;
+      console.log('Private key length:', actualKey.length);
+      console.log('Key starts with:', actualKey.substring(0, 30).replace(/\n/g, '\\n'));
+      console.log('Key ends with:', actualKey.substring(actualKey.length - 30).replace(/\n/g, '\\n'));
+      console.log('Newline count:', (actualKey.match(/\n/g) || []).length);
     }
   }
 } else {
