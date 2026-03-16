@@ -18,9 +18,12 @@ const getRedirectUri = (req) => {
   const host = req.get('host');
   const protocol = req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
   
-  // CRITICAL: This MUST be the backend's own URL (e.g., your-backend.vercel.app)
-  // NOT the frontend URL (www.fiahost.qzz.io).
-  return `${protocol}://${host}/api/auth/discord/callback`;
+  // Use the backend's actual URL on Vercel for the Discord callback
+  // This matches what you should set in the Discord Developer Portal
+  if (host && (host.includes('localhost') || host.includes('127.0.0.1'))) {
+    return 'http://localhost:5000/api/auth/discord/callback';
+  }
+  return `https://backend-nine-tau-82.vercel.app/api/auth/discord/callback`;
 };
 
 router.get('/user/:id', async (req, res) => {
